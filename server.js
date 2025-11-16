@@ -3,15 +3,28 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const fs = require('fs').promises;
 const path = require('path');
-const bcrypt = require('bcryptjs'); // ADDED: For password hashing
+const bcrypt = require('bcryptjs');
 
 const app = express();
-const PORT = 3000;
+
+// IMPORTANT: Render requires process.env.PORT
+const PORT = process.env.PORT || 3000;
+
+// Database file path
 const DB_PATH = path.join(__dirname, 'database.json');
 
 // --- Middleware ---
 app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
+
+// --- Serve frontend files (VERY IMPORTANT FOR RENDER) ---
+// This tells Express to serve static files (html, css, js) from the current directory
+app.use(express.static(path.join(__dirname)));
+
+// Route for the homepage
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
 
 // --- Database Helpers ---
 const initDb = async () => {
@@ -50,41 +63,34 @@ app.post('/api/register', async (req, res) => {
   try {
     let { username, password, fullName } = req.body;
 
-    // 1. Check for missing fields
     if (!username || !password) {
       return res.status(400).json({ error: 'Missing username or password' });
     }
 
-    // 2. Normalization & Trimming
-    // Converts email to lowercase and removes surrounding whitespace
     const normalizedUser = username.trim().toLowerCase();
     const cleanPassword = password.trim();
 
-    // 3. Gmail Validation
     if (!isValidGmail(normalizedUser)) {
       return res.status(400).json({ error: 'Registration is restricted to @gmail.com addresses only.' });
     }
 
-    // 4. Strong Password Check
     if (cleanPassword.length < 8) {
       return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
     }
 
     const db = await readDb();
 
-    // 5. Duplicate Account Protection
     if (db.users.find(u => u.username === normalizedUser)) {
       return res.status(409).json({ error: 'Account already exists.' });
     }
 
-    // 6. Password Hashing (Bcrypt)
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(cleanPassword, salt);
 
     const newUser = {
       id: Date.now(),
       username: normalizedUser,
-      password: hashedPassword, // Storing hash, not plain text!
+      password: hashedPassword,
       fullName: fullName ? fullName.trim() : '',
       joinedDate: new Date().toISOString(),
       profile: {
@@ -100,7 +106,6 @@ app.post('/api/register', async (req, res) => {
     db.users.push(newUser);
     await writeDb(db);
 
-    // Return user info without the password hash
     const { password: _, ...userSafe } = newUser;
     res.status(201).json(userSafe);
   } catch (e) {
@@ -116,16 +121,13 @@ app.post('/api/login', async (req, res) => {
     
     if (!username || !password) return res.status(400).json({ error: 'Missing credentials' });
 
-    // Normalize input to match how we stored it
     const normalizedUser = username.trim().toLowerCase();
     
     const db = await readDb();
     const user = db.users.find(u => u.username === normalizedUser);
 
-    // Check if user exists
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
-    // 7. Compare Hash
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
 
@@ -158,7 +160,6 @@ app.post('/api/workouts', async (req, res) => {
   try {
     const { userId, type, duration, calories, date, notes, intensity } = req.body;
     
-    // Added basic input validation
     if (!userId || !type) return res.status(400).json({ error: 'Missing required fields' });
     if (Number(duration) < 0 || Number(calories) < 0) {
       return res.status(400).json({ error: 'Duration and calories cannot be negative' });
@@ -166,7 +167,6 @@ app.post('/api/workouts', async (req, res) => {
 
     const db = await readDb();
     
-    // Verify user actually exists before adding workout
     const userExists = db.users.some(u => u.id === Number(userId));
     if (!userExists) return res.status(404).json({ error: 'User ID not found' });
 
@@ -200,7 +200,6 @@ app.put('/api/workouts/:id', async (req, res) => {
     const index = db.workouts.findIndex(w => w.id === Number(id));
     if (index === -1) return res.status(404).json({ error: 'Workout not found' });
 
-    // Sanitize inputs if they exist in updates
     if (updates.type) updates.type = updates.type.trim();
     if (updates.notes) updates.notes = updates.notes.trim();
 
@@ -254,12 +253,12 @@ app.put('/api/profile', async (req, res) => {
   }
 });
 
-// 8. Health Check (New Feature)
+// 8. Health Check
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK', timestamp: new Date() });
 });
 
-// Initialize and Start
+// --- Start server ---
 initDb().then(() => {
-  app.listen(PORT, () => console.log(`FitTrack Pro Server running on http://localhost:${PORT}`));
+  app.listen(PORT, () => console.log(`FitTrack Pro Server running on port ${PORT}`));
 });
