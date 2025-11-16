@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FitTrack Pro | Elite Fitness Analytics</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        },
+                        accent: {
+                            purple: '#8b5cf6',
+                            pink: '#ec4899',
+                            green: '#10b981',
+                            orange: '#f97316'
+                        },
+                        dark: {
+                            bg: '#0f172a',
+                            card: '#1e293b',
+                            surface: '#334155'
+                        }
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'slide-up': 'slideUp 0.5s ease-out',
+                        'slide-in-right': 'slideInRight 0.4s ease-out',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        slideInRight: {
+                            '0%': { transform: 'translateX(100%)' },
+                            '100%': { transform: 'translateX(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- Global & Reset --- */
+        :root {
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --neon-glow: 0 0 20px rgba(14, 165, 233, 0.3);
+        }
+        
+        body {
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        /* Glassmorphism Utilities */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+        }
+        
+        .glass-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+        }
+
+        .glass-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            transition: all 0.3s ease;
+        }
+        .glass-input:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #38bdf8;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+            cursor: pointer;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 2px;
+        }
+
+        /* Activity Rings Container */
+        .rings-container {
+            position: relative;
+            width: 240px;
+            height: 240px;
+        }
+        
+        /* Loader */
+        .loader-wrapper {
+            position: fixed;
+            inset: 0;
+            background: #0f172a;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #1e293b;
+            border-top-color: #38bdf8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Gradient Text */
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(to right, #38bdf8, #818cf8);
+        }
+
+        /* Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #38bdf8;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #38bdf8;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-dark-bg text-gray-800 dark:text-gray-100 font-sans transition-colors duration-300 min-h-screen flex overflow-hidden">
+
+    <!-- App Loader -->
+    <div id="app-loader" class="loader-wrapper">
+        <div class="text-center">
+            <div class="spinner mx-auto mb-4"></div>
+            <h1 class="text-xl font-display font-bold text-white tracking-wider">FITTRACK<span class="text-sky-400">PRO</span></h1>
+        </div>
+    </div>
+
+    <!-- Auth Container -->
+    <div id="auth-view" class="hidden fixed inset-0 z-50 bg-[url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center">
+        <div class="absolute inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="w-full max-w-md glass-card p-8 rounded-2xl animate-slide-up">
+                <div class="text-center mb-8">
+                    <div class="w-16 h-16 bg-gradient-to-br from-sky-400 to-indigo-500 rounded-xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-sky-500/20">
+                        <i class="fas fa-bolt text-2xl text-white"></i>
+                    </div>
+                    <h2 class="text-3xl font-display font-bold text-white">Welcome Back</h2>
+                    <p class="text-gray-400">Sign in to access your dashboard</p>
+                </div>
+
+                <!-- Login Form -->
+                <form id="login-form" class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Username</label>
+                        <input type="text" id="login-user" class="w-full glass-input rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none" placeholder="Enter username">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Password</label>
+                        <input type="password" id="login-pass" class="w-full glass-input rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none" placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="w-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold py-3 rounded-lg shadow-lg shadow-sky-500/30 hover:shadow-sky-500/50 transition transform hover:-translate-y-0.5">
+                        Sign In
+                    </button>
+                </form>
+
+                <div class="mt-6 text-center">
+                    <button id="btn-toggle-auth" class="text-sm text-gray-400 hover:text-white transition">
+                        New user? Create an account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Layout (Sidebar + Main) -->
+    <div id="app-layout" class="hidden flex w-full h-screen">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="w-20 lg:w-64 bg-white dark:bg-dark-card border-r border-gray-200 dark:border-slate-800 flex flex-col transition-all duration-300 z-40 relative">
+            <!-- Logo -->
+            <div class="h-20 flex items-center justify-center lg:justify-start lg:px-8 border-b border-gray-200 dark:border-slate-800">
+                <div class="w-10 h-10 bg-gradient-to-br from-sky-400 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
+                    <i class="fas fa-running text-white"></i>
+                </div>
+                <span class="hidden lg:block ml-3 font-display font-bold text-xl tracking-tight text-gray-900 dark:text-white">FitTrack</span>
+            </div>
+
+            <!-- Nav Links -->
+            <nav class="flex-1 py-6 space-y-2 px-2 lg:px-4">
+                <button class="nav-btn w-full flex items-center p-3 rounded-xl text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all group active-nav" data-target="dashboard">
+                    <i class="fas fa-home text-xl w-8 text-center transition-colors group-hover:text-sky-500"></i>
+                    <span class="hidden lg:block ml-3 font-medium">Dashboard</span>
+                </button>
+                <button class="nav-btn w-full flex items-center p-3 rounded-xl text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all group" data-target="workouts">
+                    <i class="fas fa-dumbbell text-xl w-8 text-center transition-colors group-hover:text-sky-500"></i>
+                    <span class="hidden lg:block ml-3 font-medium">Workouts</span>
+                </button>
+                <button class="nav-btn w-full flex items-center p-3 rounded-xl text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all group" data-target="analytics">
+                    <i class="fas fa-chart-pie text-xl w-8 text-center transition-colors group-hover:text-sky-500"></i>
+                    <span class="hidden lg:block ml-3 font-medium">Analytics</span>
+                </button>
+                <button class="nav-btn w-full flex items-center p-3 rounded-xl text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all group" data-target="hydration">
+                    <i class="fas fa-tint text-xl w-8 text-center transition-colors group-hover:text-sky-500"></i>
+                    <span class="hidden lg:block ml-3 font-medium">Hydration</span>
+                </button>
+            </nav>
+
+            <!-- User Profile Mini -->
+            <div class="p-4 border-t border-gray-200 dark:border-slate-800">
+                <button id="btn-profile-modal" class="w-full flex items-center p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 p-0.5">
+                        <img src="https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff" alt="User" class="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-900" id="user-avatar">
+                    </div>
+                    <div class="hidden lg:block ml-3 text-left">
+                        <p class="text-sm font-bold text-gray-900 dark:text-white truncate" id="nav-username">User</p>
+                        <p class="text-xs text-gray-500 dark:text-slate-400">Pro Member</p>
+                    </div>
+                    <i class="fas fa-cog hidden lg:block ml-auto text-gray-400"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 h-full overflow-y-auto relative bg-gray-50 dark:bg-dark-bg scroll-smooth">
+            <!-- Header (Mobile) -->
+            <header class="lg:hidden sticky top-0 z-30 bg-white/80 dark:bg-dark-bg/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-800 p-4 flex justify-between items-center">
+                <div class="font-display font-bold text-xl dark:text-white">FitTrack</div>
+                <button id="mobile-menu-btn" class="text-gray-600 dark:text-gray-300">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </header>
+
+            <!-- Content Views -->
+            <div class="p-4 lg:p-8 max-w-7xl mx-auto pb-24 space-y-8">
+                
+                <!-- DASHBOARD VIEW -->
+                <section id="view-dashboard" class="view-section animate-slide-up">
+                    <div class="flex flex-col md:flex-row justify-between items-end mb-8">
+                        <div>
+                            <p class="text-gray-500 dark:text-slate-400 font-medium" id="date-display">Monday, Jan 01</p>
+                            <h1 class="text-3xl md:text-4xl font-display font-bold text-gray-900 dark:text-white mt-1">
+                                Hello, <span class="text-gradient" id="dash-username">User</span>
+                            </h1>
+                        </div>
+                        <button id="btn-add-workout-fab" class="mt-4 md:mt-0 bg-sky-500 hover:bg-sky-600 text-white px-6 py-3 rounded-xl shadow-lg shadow-sky-500/30 font-semibold transition flex items-center">
+                            <i class="fas fa-plus mr-2"></i> Log Workout
+                        </button>
+                    </div>
+
+                    <!-- Metrics Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                        <!-- Activity Rings Card -->
+                        <div class="glass-card p-6 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-green-500 to-sky-500"></div>
+                            <h3 class="absolute top-4 left-6 text-gray-400 font-semibold text-sm uppercase tracking-wider">Activity</h3>
+                            <div class="rings-container mt-4">
+                                <canvas id="rings-canvas" width="240" height="240"></canvas>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                    <span class="text-3xl font-bold text-white" id="ring-cals">0</span>
+                                    <span class="text-xs text-gray-400">KCAL</span>
+                                </div>
+                            </div>
+                            <div class="flex justify-between w-full mt-4 px-4">
+                                <div class="text-center">
+                                    <div class="text-xs text-red-400 font-bold">MOVE</div>
+                                    <div class="text-white font-mono" id="val-move">0/500</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-xs text-green-400 font-bold">EXERCISE</div>
+                                    <div class="text-white font-mono" id="val-exercise">0/30</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-xs text-sky-400 font-bold">STAND</div>
+                                    <div class="text-white font-mono" id="val-stand">6/12</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Weekly Summary -->
+                        <div class="glass-card p-6 rounded-2xl lg:col-span-2 flex flex-col">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-gray-100 font-semibold">Weekly Activity</h3>
+                                <select class="bg-slate-800 text-xs text-gray-300 px-3 py-1 rounded-lg border border-slate-700 focus:outline-none">
+                                    <option>Last 7 Days</option>
+                                    <option>Last Month</option>
+                                </select>
+                            </div>
+                            <div class="flex-1 w-full h-full min-h-[200px]">
+                                <canvas id="main-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Secondary Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- Quick Stats -->
+                        <div class="glass-card p-5 rounded-2xl flex items-center space-x-4">
+                            <div class="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+                                <i class="fas fa-fire text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-400">Calories Burned</p>
+                                <p class="text-xl font-bold text-white" id="stat-cals">0</p>
+                            </div>
+                        </div>
+                        <div class="glass-card p-5 rounded-2xl flex items-center space-x-4">
+                            <div class="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
+                                <i class="fas fa-stopwatch text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-400">Active Minutes</p>
+                                <p class="text-xl font-bold text-white" id="stat-mins">0</p>
+                            </div>
+                        </div>
+                        <div class="glass-card p-5 rounded-2xl flex items-center space-x-4">
+                            <div class="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500">
+                                <i class="fas fa-shoe-prints text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-400">Step Count</p>
+                                <p class="text-xl font-bold text-white">8,432</p> <!-- Mocked for UI -->
+                            </div>
+                        </div>
+                        <div class="glass-card p-5 rounded-2xl flex items-center space-x-4">
+                            <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+                                <i class="fas fa-weight text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-400">Current Weight</p>
+                                <p class="text-xl font-bold text-white" id="stat-weight">--</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Workouts List -->
+                    <div class="mt-8">
+                        <h3 class="text-xl font-bold text-white mb-4">Recent Workouts</h3>
+                        <div class="space-y-3" id="dashboard-list">
+                            <!-- Injected JS -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- WORKOUTS VIEW -->
+                <section id="view-workouts" class="view-section hidden animate-slide-up">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-bold text-white">Workout Log</h2>
+                        <div class="flex gap-2">
+                             <input type="text" placeholder="Search..." class="hidden md:block glass-input px-4 py-2 rounded-lg text-sm text-white">
+                        </div>
+                    </div>
+                    <div id="workouts-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Cards injected here -->
+                    </div>
+                    <div id="empty-workouts" class="hidden text-center py-20">
+                        <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-dumbbell text-3xl text-slate-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white">No workouts yet</h3>
+                        <p class="text-gray-400 mb-6">Start your journey today!</p>
+                        <button class="bg-sky-500 text-white px-6 py-2 rounded-lg" onclick="app.openModal('add-workout')">Add First Workout</button>
+                    </div>
+                </section>
+
+                <!-- ANALYTICS VIEW -->
+                <section id="view-analytics" class="view-section hidden animate-slide-up">
+                     <h2 class="text-3xl font-bold text-white mb-6">Performance Analytics</h2>
+                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                         <div class="glass-card p-6 rounded-2xl">
+                             <h3 class="text-lg font-semibold text-white mb-4">Calories vs Duration</h3>
+                             <canvas id="scatter-chart"></canvas>
+                         </div>
+                         <div class="glass-card p-6 rounded-2xl">
+                             <h3 class="text-lg font-semibold text-white mb-4">Workout Distribution</h3>
+                             <canvas id="pie-chart"></canvas>
+                         </div>
+                         <div class="glass-card p-6 rounded-2xl col-span-1 lg:col-span-2">
+                             <h3 class="text-lg font-semibold text-white mb-4">Weight History</h3>
+                             <canvas id="line-chart"></canvas>
+                         </div>
+                     </div>
+                </section>
+
+                <!-- HYDRATION VIEW -->
+                <section id="view-hydration" class="view-section hidden animate-slide-up">
+                    <h2 class="text-3xl font-bold text-white mb-6">Hydration Tracker</h2>
+                    <div class="flex flex-col items-center justify-center py-10">
+                        <div class="relative w-40 h-64 border-4 border-sky-500/30 rounded-3xl overflow-hidden glass-card">
+                            <div id="water-level" class="absolute bottom-0 left-0 w-full bg-sky-500 transition-all duration-500" style="height: 0%">
+                                <div class="absolute top-0 left-0 w-full h-2 bg-sky-400 opacity-50 animate-pulse"></div>
+                            </div>
+                            <div class="absolute inset-0 flex items-center justify-center z-10">
+                                <span id="water-text" class="text-2xl font-bold text-white drop-shadow-md">0%</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-4 mt-8">
+                            <button class="w-12 h-12 rounded-full bg-slate-800 text-sky-400 hover:bg-slate-700 flex items-center justify-center transition" onclick="app.updateWater(-250)">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                             <button class="px-6 py-3 rounded-xl bg-sky-500 text-white hover:bg-sky-600 font-bold transition flex items-center gap-2" onclick="app.updateWater(250)">
+                                <i class="fas fa-glass-water"></i> +250ml
+                            </button>
+                        </div>
+                        <p class="mt-4 text-gray-400">Daily Goal: 2500ml</p>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- MODALS -->
+    
+    <!-- Add Workout Modal -->
+    <div id="modal-add-workout" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onclick="app.closeModal('add-workout')"></div>
+        <div class="absolute bottom-0 md:top-1/2 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[600px] bg-[#1e293b] md:rounded-2xl rounded-t-2xl p-6 md:p-8 shadow-2xl animate-slide-up">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-white">Log Workout</h3>
+                <button class="text-gray-400 hover:text-white" onclick="app.closeModal('add-workout')"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            
+            <form id="form-workout" class="space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">Type</label>
+                        <select name="type" class="w-full glass-input text-white rounded-lg px-4 py-3 focus:outline-none">
+                            <option value="Run">🏃 Run</option>
+                            <option value="Walk">🚶 Walk</option>
+                            <option value="Cycling">🚴 Cycling</option>
+                            <option value="Weightlifting">🏋️ Weightlifting</option>
+                            <option value="Yoga">🧘 Yoga</option>
+                            <option value="HIIT">🔥 HIIT</option>
+                            <option value="Swimming">🏊 Swimming</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">Date</label>
+                        <input type="date" name="date" class="w-full glass-input text-white rounded-lg px-4 py-3 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">Duration (min)</label>
+                        <input type="number" name="duration" required class="w-full glass-input text-white rounded-lg px-4 py-3 focus:outline-none" placeholder="0">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">Calories</label>
+                        <input type="number" name="calories" required class="w-full glass-input text-white rounded-lg px-4 py-3 focus:outline-none" placeholder="0">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Intensity</label>
+                    <input type="range" name="intensity" min="1" max="10" value="5" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-xs text-gray-500 mt-2">
+                        <span>Easy</span>
+                        <span>Moderate</span>
+                        <span>Extreme</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Notes</label>
+                    <textarea name="notes" rows="2" class="w-full glass-input text-white rounded-lg px-4 py-3 focus:outline-none resize-none" placeholder="How did it feel?"></textarea>
+                </div>
+
+                <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-sky-500/20 transition">
+                    Save Workout
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="modal-profile" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="app.closeModal('profile')"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-[#1e293b] rounded-2xl p-8 shadow-2xl">
+             <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-white">Edit Profile</h3>
+                <button class="text-gray-400 hover:text-white" onclick="app.closeModal('profile')"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="form-profile" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Current Weight (kg)</label>
+                    <input type="number" id="prof-weight" class="w-full glass-input text-white rounded-lg p-3" step="0.1">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Height (cm)</label>
+                    <input type="number" id="prof-height" class="w-full glass-input text-white rounded-lg p-3">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Age</label>
+                    <input type="number" id="prof-age" class="w-full glass-input text-white rounded-lg p-3">
+                </div>
+                 <div class="bg-slate-800 p-4 rounded-lg mt-4">
+                    <p class="text-xs text-gray-400 uppercase font-bold mb-1">Your BMI</p>
+                    <p id="prof-bmi" class="text-2xl font-bold text-white">--</p>
+                </div>
+                <button type="submit" class="w-full bg-sky-500 text-white font-bold py-3 rounded-lg mt-4">Update Stats</button>
+                <button type="button" id="btn-logout" class="w-full bg-red-500/10 text-red-500 font-bold py-3 rounded-lg hover:bg-red-500/20 transition">Log Out</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-[110] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- CORE APPLICATION LOGIC -->
+    <script>
+        /**
+         * FitTrack Pro - Core Application Class
+         * Handles State, API, Router, and UI
+         */
+        class FitTrackApp {
+            constructor() {
+                this.state = {
+                    user: null,
+                    workouts: [],
+                    waterIntake: 0,
+                    waterGoal: 2500,
+                    theme: 'dark',
+                    view: 'dashboard'
+                };
+                this.apiBase = 'http://localhost:3000/api';
+                this.charts = {};
+                
+                // Bind methods
+                this.init = this.init.bind(this);
+                // Removed undefined 'this.login' binding. 'handleLogin' is used instead.
+                this.renderDashboard = this.renderDashboard.bind(this);
+            }
+
+            async init() {
+                this.loadLocalState();
+                this.setupEventListeners();
+                
+                // Hide loader after minimum 1s
+                setTimeout(() => {
+                    document.getElementById('app-loader').style.opacity = '0';
+                    setTimeout(() => document.getElementById('app-loader').style.display = 'none', 500);
+                }, 1000);
+
+                if (this.state.user) {
+                    await this.fetchUserData();
+                    this.switchView('dashboard');
+                    document.getElementById('auth-view').classList.add('hidden');
+                    document.getElementById('app-layout').classList.remove('hidden');
+                    document.getElementById('app-layout').classList.add('flex');
+                } else {
+                    document.getElementById('auth-view').classList.remove('hidden');
+                }
+                
+                this.updateDateDisplay();
+            }
+
+            loadLocalState() {
+                const user = localStorage.getItem('ft_user');
+                const water = localStorage.getItem('ft_water');
+                const date = localStorage.getItem('ft_water_date');
+                
+                if (user) this.state.user = JSON.parse(user);
+                
+                // Reset water if new day
+                const today = new Date().toDateString();
+                if (date === today) {
+                    if (water) this.state.waterIntake = parseInt(water);
+                } else {
+                    this.state.waterIntake = 0;
+                    localStorage.setItem('ft_water_date', today);
+                }
+                this.updateWaterUI();
+            }
+
+            setupEventListeners() {
+                // Auth
+                document.getElementById('login-form').addEventListener('submit', this.handleLogin.bind(this));
+                document.getElementById('btn-logout').addEventListener('click', this.handleLogout.bind(this));
+                document.getElementById('btn-toggle-auth').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Simple toggle for demo - normally would swap forms
+                    this.showToast('Switching to Sign Up (Demo Mode)', 'info');
+                    document.querySelector('#auth-view h2').innerText = 'Create Account';
+                    document.querySelector('#auth-view button[type=submit]').innerText = 'Sign Up';
+                    // Attach register handler instead
+                });
+
+                // Nav
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const target = e.currentTarget.dataset.target;
+                        this.switchView(target);
+                    });
+                });
+
+                // Modals
+                document.getElementById('btn-add-workout-fab').addEventListener('click', () => this.openModal('add-workout'));
+                document.getElementById('btn-profile-modal').addEventListener('click', () => this.openModal('profile'));
+                document.getElementById('form-workout').addEventListener('submit', this.handleAddWorkout.bind(this));
+                document.getElementById('form-profile').addEventListener('submit', this.handleUpdateProfile.bind(this));
+
+                // Mobile Menu
+                document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+                    document.querySelector('aside').classList.toggle('-translate-x-full');
+                });
+                
+                // Profile Inputs for BMI
+                ['prof-weight', 'prof-height'].forEach(id => {
+                    document.getElementById(id).addEventListener('input', this.calculateBMI.bind(this));
+                });
+            }
+
+            /* --- API Methods --- */
+
+            async api(endpoint, method = 'GET', body = null) {
+                try {
+                    const headers = { 'Content-Type': 'application/json' };
+                    const options = { method, headers };
+                    if (body) options.body = JSON.stringify(body);
+                    
+                    const res = await fetch(`${this.apiBase}${endpoint}`, options);
+                    if (!res.ok) throw new Error((await res.json()).error || 'API Error');
+                    return await res.json();
+                } catch (err) {
+                    this.showToast(err.message, 'error');
+                    throw err;
+                }
+            }
+
+            async handleLogin(e) {
+                e.preventDefault();
+                const username = document.getElementById('login-user').value;
+                const password = document.getElementById('login-pass').value;
+                
+                try {
+                    // Check if signup or login based on UI state (simplified)
+                    const isSignup = document.querySelector('#auth-view button[type=submit]').innerText === 'Sign Up';
+                    const endpoint = isSignup ? '/register' : '/login';
+                    
+                    const user = await this.api(endpoint, 'POST', { username, password });
+                    this.state.user = user;
+                    localStorage.setItem('ft_user', JSON.stringify(user));
+                    
+                    document.getElementById('auth-view').classList.add('hidden');
+                    document.getElementById('app-layout').classList.remove('hidden');
+                    document.getElementById('app-layout').classList.add('flex');
+                    
+                    await this.fetchUserData();
+                    this.switchView('dashboard');
+                    this.showToast(`Welcome back, ${user.username}!`, 'success');
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+
+            handleLogout() {
+                localStorage.removeItem('ft_user');
+                location.reload();
+            }
+
+            async fetchUserData() {
+                if (!this.state.user) return;
+                try {
+                    const workouts = await this.api(`/workouts?userId=${this.state.user.id}`);
+                    this.state.workouts = workouts;
+                    this.updateProfileUI();
+                    this.renderDashboard();
+                    this.renderWorkoutsList();
+                    this.renderAnalytics();
+                } catch (err) {
+                    console.error('Failed to load data', err);
+                }
+            }
+
+            async handleAddWorkout(e) {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const data = Object.fromEntries(formData.entries());
+                data.userId = this.state.user.id;
+
+                try {
+                    await this.api('/workouts', 'POST', data);
+                    this.closeModal('add-workout');
+                    e.target.reset();
+                    await this.fetchUserData(); // Reload all
+                    this.showToast('Workout logged successfully!', 'success');
+                } catch (err) {}
+            }
+
+            async handleUpdateProfile(e) {
+                e.preventDefault();
+                const weight = document.getElementById('prof-weight').value;
+                const height = document.getElementById('prof-height').value;
+                const age = document.getElementById('prof-age').value;
+
+                try {
+                    const updatedUser = await this.api('/profile', 'PUT', { 
+                        userId: this.state.user.id, weight, height, age 
+                    });
+                    this.state.user = updatedUser;
+                    localStorage.setItem('ft_user', JSON.stringify(updatedUser));
+                    this.updateProfileUI();
+                    this.closeModal('profile');
+                    this.showToast('Profile updated', 'success');
+                } catch (err) {}
+            }
+
+            /* --- UI Logic --- */
+
+            switchView(viewId) {
+                // Nav Active State
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.classList.remove('active-nav', 'bg-gray-100', 'dark:bg-slate-800', 'text-sky-500');
+                    btn.querySelector('i').classList.remove('text-sky-500');
+                    
+                    if (btn.dataset.target === viewId) {
+                        btn.classList.add('active-nav', 'bg-gray-100', 'dark:bg-slate-800');
+                        btn.querySelector('i').classList.add('text-sky-500');
+                    }
+                });
+
+                // View Visibility
+                document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+                const target = document.getElementById(`view-${viewId}`);
+                target.classList.remove('hidden');
+                
+                // Trigger animations
+                target.classList.remove('animate-slide-up');
+                void target.offsetWidth; // reflow
+                target.classList.add('animate-slide-up');
+
+                // Specific view logic
+                if (viewId === 'dashboard') this.renderRings();
+                if (viewId === 'analytics') this.renderAnalytics();
+            }
+
+            updateDateDisplay() {
+                const options = { weekday: 'long', month: 'short', day: 'numeric' };
+                document.getElementById('date-display').textContent = new Date().toLocaleDateString('en-US', options);
+            }
+
+            updateProfileUI() {
+                const { username, profile } = this.state.user;
+                document.getElementById('nav-username').textContent = username;
+                document.getElementById('dash-username').textContent = username;
+                document.getElementById('stat-weight').textContent = profile.weight ? `${profile.weight} kg` : '--';
+                
+                // Populate Profile Modal
+                document.getElementById('prof-weight').value = profile.weight || '';
+                document.getElementById('prof-height').value = profile.height || '';
+                document.getElementById('prof-age').value = profile.age || '';
+                this.calculateBMI();
+            }
+
+            calculateBMI() {
+                const w = parseFloat(document.getElementById('prof-weight').value);
+                const h = parseFloat(document.getElementById('prof-height').value) / 100;
+                const el = document.getElementById('prof-bmi');
+                
+                if (w && h) {
+                    const bmi = (w / (h * h)).toFixed(1);
+                    el.textContent = bmi;
+                    if(bmi < 18.5) el.className = 'text-2xl font-bold text-blue-400';
+                    else if(bmi < 25) el.className = 'text-2xl font-bold text-green-400';
+                    else el.className = 'text-2xl font-bold text-orange-400';
+                } else {
+                    el.textContent = '--';
+                }
+            }
+
+            renderDashboard() {
+                const workouts = this.state.workouts;
+                const totalCals = workouts.reduce((acc, w) => acc + (w.calories || 0), 0);
+                const totalMins = workouts.reduce((acc, w) => acc + (w.duration || 0), 0);
+
+                document.getElementById('stat-cals').textContent = totalCals.toLocaleString();
+                document.getElementById('stat-mins').textContent = totalMins.toLocaleString();
+
+                // Recent List
+                const list = document.getElementById('dashboard-list');
+                list.innerHTML = workouts.slice(0, 5).map(w => `
+                    <div class="glass-card p-4 rounded-xl flex items-center justify-between hover:bg-slate-800/50 transition cursor-pointer">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-10 h-10 rounded-lg bg-sky-500/20 flex items-center justify-center text-sky-500">
+                                <i class="fas ${this.getIconForType(w.type)}"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold text-white">${w.type}</p>
+                                <p class="text-xs text-gray-400">${new Date(w.date).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-mono text-sky-400 font-bold">${w.calories} kcal</p>
+                            <p class="text-xs text-gray-500">${w.duration} min</p>
+                        </div>
+                    </div>
+                `).join('');
+
+                this.renderRings();
+                this.renderMainChart();
+            }
+
+            renderWorkoutsList() {
+                const grid = document.getElementById('workouts-grid');
+                const empty = document.getElementById('empty-workouts');
+                
+                if (this.state.workouts.length === 0) {
+                    grid.innerHTML = '';
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                empty.classList.add('hidden');
+
+                grid.innerHTML = this.state.workouts.map(w => `
+                    <div class="glass-card p-6 rounded-2xl group hover:border-sky-500/50 transition duration-300">
+                        <div class="flex justify-between items-start mb-4">
+                            <span class="bg-sky-500/10 text-sky-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">${w.type}</span>
+                            <button class="text-gray-500 hover:text-red-500 transition" onclick="app.deleteWorkout(${w.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        <h3 class="text-2xl font-bold text-white mb-1">${w.calories} <span class="text-sm text-gray-400 font-normal">kcal</span></h3>
+                        <div class="flex items-center text-gray-400 text-sm mb-4">
+                            <i class="far fa-clock mr-2"></i> ${w.duration} mins
+                            <span class="mx-2">•</span>
+                            <i class="far fa-calendar mr-2"></i> ${new Date(w.date).toLocaleDateString()}
+                        </div>
+                        <div class="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-gradient-to-r from-sky-400 to-blue-500 h-full" style="width: ${Math.min((w.intensity || 5) * 10, 100)}%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Intensity: ${w.intensity || 5}/10</p>
+                        ${w.notes ? `<p class="mt-4 text-sm text-gray-400 italic border-l-2 border-slate-600 pl-3">"${w.notes}"</p>` : ''}
+                    </div>
+                `).join('');
+            }
+
+            async deleteWorkout(id) {
+                if(!confirm('Delete this workout?')) return;
+                try {
+                    await this.api(`/workouts/${id}`, 'DELETE');
+                    await this.fetchUserData();
+                    this.showToast('Workout deleted', 'info');
+                } catch(e) {}
+            }
+
+            /* --- Canvas & Charts --- */
+
+            renderRings() {
+                const canvas = document.getElementById('rings-canvas');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                const size = 240;
+                const center = size / 2;
+                
+                // Goals (Mocked)
+                const goals = { move: 500, exercise: 30, stand: 12 };
+                const current = { 
+                    move: this.state.workouts.reduce((a,b)=>a+(b.calories||0),0), 
+                    exercise: this.state.workouts.reduce((a,b)=>a+(b.duration||0),0),
+                    stand: 6 
+                };
+
+                // Update Text
+                document.getElementById('ring-cals').innerText = current.move;
+                document.getElementById('val-move').innerText = `${current.move}/${goals.move}`;
+                document.getElementById('val-exercise').innerText = `${current.exercise}/${goals.exercise}`;
+
+                ctx.clearRect(0, 0, size, size);
+                ctx.lineCap = 'round';
+
+                const drawRing = (radius, color, bg, percent) => {
+                    // Bg
+                    ctx.beginPath();
+                    ctx.arc(center, center, radius, 0, 2 * Math.PI);
+                    ctx.strokeStyle = bg;
+                    ctx.lineWidth = 16;
+                    ctx.stroke();
+                    
+                    // Progress
+                    const endAngle = (Math.PI * 2 * percent) - (Math.PI / 2);
+                    ctx.beginPath();
+                    ctx.arc(center, center, radius, -Math.PI / 2, endAngle);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 16;
+                    ctx.stroke();
+                };
+
+                drawRing(90, '#ef4444', '#451a1a', Math.min(current.move / goals.move, 1));   // Red
+                drawRing(65, '#22c55e', '#143520', Math.min(current.exercise / goals.exercise, 1)); // Green
+                drawRing(40, '#0ea5e9', '#122b3d', Math.min(current.stand / goals.stand, 1)); // Blue
+            }
+
+            renderMainChart() {
+                const ctx = document.getElementById('main-chart').getContext('2d');
+                
+                // Generate last 7 days labels
+                const labels = Array.from({length: 7}, (_, i) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() - (6-i));
+                    return d.toLocaleDateString('en-US', {weekday: 'short'});
+                });
+
+                // Mock data map
+                const dataPoints = [120, 300, 450, 200, 500, 320, 400]; 
+
+                if (this.charts.main) this.charts.main.destroy();
+
+                this.charts.main = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Calories',
+                            data: dataPoints,
+                            borderColor: '#38bdf8',
+                            backgroundColor: (context) => {
+                                const bg = context.chart.ctx.createLinearGradient(0, 0, 0, 300);
+                                bg.addColorStop(0, 'rgba(56, 189, 248, 0.5)');
+                                bg.addColorStop(1, 'rgba(56, 189, 248, 0)');
+                                return bg;
+                            },
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#0f172a',
+                            pointBorderColor: '#38bdf8',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                            x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                        }
+                    }
+                });
+            }
+
+            renderAnalytics() {
+                if(document.getElementById('view-analytics').classList.contains('hidden')) return;
+
+                // Mock Pie Chart
+                const types = {};
+                this.state.workouts.forEach(w => types[w.type] = (types[w.type] || 0) + 1);
+                
+                const pieCtx = document.getElementById('pie-chart').getContext('2d');
+                if (this.charts.pie) this.charts.pie.destroy();
+                this.charts.pie = new Chart(pieCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(types),
+                        datasets: [{
+                            data: Object.values(types),
+                            backgroundColor: ['#38bdf8', '#818cf8', '#c084fc', '#f472b6', '#34d399'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: { cutout: '70%', plugins: { legend: { position: 'right', labels: { color: '#fff' } } } }
+                });
+
+                // Mock Scatter (Cal vs Duration)
+                const scatterCtx = document.getElementById('scatter-chart').getContext('2d');
+                if (this.charts.scatter) this.charts.scatter.destroy();
+                this.charts.scatter = new Chart(scatterCtx, {
+                    type: 'scatter',
+                    data: {
+                        datasets: [{
+                            label: 'Workouts',
+                            data: this.state.workouts.map(w => ({x: w.duration, y: w.calories})),
+                            backgroundColor: '#38bdf8'
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            x: { title: { display: true, text: 'Duration (min)', color: '#94a3b8' }, grid: { color: '#334155' } },
+                            y: { title: { display: true, text: 'Calories', color: '#94a3b8' }, grid: { color: '#334155' } }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
+            /* --- Hydration Logic --- */
+            
+            updateWater(amount) {
+                this.state.waterIntake = Math.max(0, this.state.waterIntake + amount);
+                localStorage.setItem('ft_water', this.state.waterIntake);
+                this.updateWaterUI();
+            }
+
+            updateWaterUI() {
+                const percent = Math.min((this.state.waterIntake / this.state.waterGoal) * 100, 100);
+                document.getElementById('water-level').style.height = `${percent}%`;
+                document.getElementById('water-text').innerText = `${Math.round(percent)}%`;
+                if(percent >= 100) this.showToast('Hydration Goal Reached! 💧', 'success');
+            }
+
+            /* --- Utilities --- */
+
+            openModal(id) {
+                const modal = document.getElementById(`modal-${id}`);
+                modal.classList.remove('hidden');
+                if(id === 'add-workout') document.querySelector('#form-workout input[name=date]').valueAsDate = new Date();
+            }
+
+            closeModal(id) {
+                document.getElementById(`modal-${id}`).classList.add('hidden');
+            }
+
+            getIconForType(type) {
+                const map = {
+                    'Run': 'fa-running', 'Walk': 'fa-walking', 'Cycling': 'fa-bicycle',
+                    'Weightlifting': 'fa-dumbbell', 'Yoga': 'fa-spa', 'Swimming': 'fa-swimmer'
+                };
+                return map[type] || 'fa-fire';
+            }
+
+            showToast(msg, type = 'info') {
+                const container = document.getElementById('toast-container');
+                const el = document.createElement('div');
+                const colors = {
+                    success: 'border-green-500 text-green-400 bg-slate-900',
+                    error: 'border-red-500 text-red-400 bg-slate-900',
+                    info: 'border-sky-500 text-sky-400 bg-slate-900'
+                };
+                
+                el.className = `px-6 py-4 rounded-lg shadow-2xl border-l-4 ${colors[type]} flex items-center gap-3 min-w-[300px] animate-slide-in-right pointer-events-auto`;
+                el.innerHTML = `
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} text-xl"></i>
+                    <span class="font-semibold text-white">${msg}</span>
+                `;
+                
+                container.appendChild(el);
+                setTimeout(() => {
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateX(100%)';
+                    setTimeout(() => el.remove(), 300);
+                }, 3000);
+            }
+        }
+
+        // Init
+        const app = new FitTrackApp();
+        document.addEventListener('DOMContentLoaded', app.init);
+
+    </script>
+</body>
+</html>
